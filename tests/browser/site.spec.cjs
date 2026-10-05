@@ -1,4 +1,5 @@
 const { test, expect } = require('@playwright/test');
+const { readFileSync } = require('node:fs');
 
 test.beforeEach(async ({ page }) => {
   await page.route('https://fonts.googleapis.com/**', route => route.abort());
@@ -50,10 +51,9 @@ test('load failure offers retry and recovers', async ({ page }) => {
 
 test('Markdown and tags cannot execute script', async ({ page }) => {
   await page.route('**/blogs/ml/articles.json', async route => {
-    const response = await route.fetch();
-    const articles = await response.json();
+    const articles = JSON.parse(readFileSync('build/demo/ai-blog-publisher/blogs/ml/articles.json', 'utf8'));
     articles[0].tags = ['<img src=x onerror="window.injected=1">'];
-    await route.fulfill({ response, json: articles });
+    await route.fulfill({ json: articles });
   });
   await page.route('**/blogs/ml/*.md', route => route.fulfill({ body:
     '## Heading\n\n<img src=x onerror="window.injected=1"><script>window.injected=1</script>\n\n[unsafe](javascript:alert(1))' }));
