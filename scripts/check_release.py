@@ -9,6 +9,9 @@ def main():
     root = Path(__file__).resolve().parents[1]
     names = subprocess.check_output(["git", "ls-files", "-z", "--cached", "--others", "--exclude-standard"],
                                     cwd=root).decode().split("\0")
+    required = ("README.md", "LICENSE", "docs/RELEASE_STATUS.md", "docs/OPERATIONS.md")
+    if any(name not in names for name in required):
+        raise ValueError("Release documentation must be included in Git")
     rules = [re.compile(r"gh[pousr]_[A-Za-z0-9]{36,}"),
              re.compile(r"github_pat_[A-Za-z0-9_]{50,}"),
              re.compile(r"gsk_[A-Za-z0-9]{30,}"),
