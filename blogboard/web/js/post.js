@@ -48,7 +48,7 @@ function initReadingProgress() {
 async function loadPost() {
     // Read id from hash: post.html#id=blogs/ml/intro-to-ml.md
     const rawId = getHashParam('id');
-    const id = rawId ? decodeURIComponent(rawId) : null;
+    const id = rawId;
     const contentEl = document.getElementById('postContent');
 
     if (!id) {
@@ -57,7 +57,13 @@ async function loadPost() {
         return;
     }
 
-    const blog = await getBlogById(id);
+    let blog;
+    try {
+        blog = await getBlogById(id);
+    } catch (_) {
+        showError('Article metadata could not be loaded.', contentEl);
+        return;
+    }
     if (!blog) {
         showError('Post not found. It may have been removed or the link is incorrect.', contentEl);
         return;
@@ -104,24 +110,26 @@ async function loadPost() {
     // Tags
     const tagsEl = document.getElementById('postTags');
     if (tagsEl && blog.tags?.length) {
-        tagsEl.innerHTML = blog.tags.map(t =>
-            `<span class="post-tag">#${t}</span>`
-        ).join('');
+        tagsEl.replaceChildren(...blog.tags.map(tag => {
+            const element = document.createElement('span');
+            element.className = 'post-tag';
+            element.textContent = `#${tag}`;
+            return element;
+        }));
     }
 
     // Fetch and render markdown from R2
     try {
-        const response = await fetch(`${R2_PUBLIC_URL}/${blog.file}`);
+        const response = await fetch(contentURL(blog.file), { signal: AbortSignal.timeout(10000) });
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
 
         const mdText = await response.text();
+        if (mdText.length > 50000) throw new Error('Article exceeds size limit');
         renderMarkdown(mdText, contentEl);
         buildTOC();
     } catch (err) {
         showError(
-            `Could not load the article file.<br>
-       <small>Expected URL: <code>${R2_PUBLIC_URL}/${blog.file}</code></small><br>
-       <small>Ensure your R2 bucket is public and the URL in blogs-data.js is correct.</small>`,
+              'The article could not be loaded. Please retry.',
             contentEl
         );
         console.error('Failed to load blog post:', err);
@@ -136,15 +144,12 @@ function renderMarkdown(mdText, container) {
     });
 
     // Add IDs to headings for TOC
-    const renderer = new marked.Renderer();
-    renderer.heading = (text, level) => {
-        const escapedText = (typeof text === 'object' ? text.text : text)
-            .toLowerCase().replace(/[^\w]+/g, '-');
-        const rawText = typeof text === 'object' ? text.text : text;
-        return `<h${level} id="${escapedText}">${rawText}</h${level}>`;
-    };
-
-    container.innerHTML = marked.parse(mdText, { renderer });
+    container.innerHTML = DOMPurify.sanitize(marked.parse(mdText), {
+        FORBID_TAGS: ['style', 'form', 'input', 'button', 'iframe'], FORBID_ATTR: ['style'],
+    });
+    container.querySelectorAll('h1,h2,h3,h4,h5,h6').forEach((heading, index) => {
+        heading.id = `heading-${index}-${heading.textContent.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`;
+    });
 
     // Syntax highlight all code blocks
     if (window.hljs) {
@@ -170,6 +175,8 @@ function renderMarkdown(mdText, container) {
             navigator.clipboard.writeText(code?.textContent || '').then(() => {
                 btn.textContent = 'Copied!';
                 setTimeout(() => btn.textContent = 'Copy', 2000);
+            }).catch(() => {
+                btn.textContent = 'Copy failed';
             });
         });
         pre.style.position = 'relative';
@@ -217,10 +224,5 @@ function buildTOC() {
 /* ── Error State ── */
 function showError(message, container) {
     if (!container) return;
-    container.innerHTML = `
-    <div style="padding:40px;text-align:center;color:var(--text-muted)">
-      <div style="font-size:2.5rem;margin-bottom:16px">⚠️</div>
-      <h3 style="color:var(--text-secondary);margin-bottom:12px">Unable to load article</h3>
-      <p style="line-height:1.7">${message}</p>
-    </div>`;
+        showLoadError(container, () => loadPost(), message);
 }

@@ -1,18 +1,19 @@
 [
   {
-    "id": "blogs/ml/machine-learning-explained.md",
+    "id": "blogs/ml/review-before-release-0f90afff6055.md",
+    "file": "blogs/ml/review-before-release-0f90afff6055.md",
     "category": "ml",
-    "title": "Machine Learning Explained",
-    "description": "Discover the basics of machine learning and its applications, learn how to get started",
-    "date": "2026-03-02",
+    "title": "Review Before Release",
+    "description": "A synthetic reference article about explicit review and reliable publication.",
+    "date": "2026-10-06",
+    "topic": "Reliable publishing pipelines",
+    "subtopics": "",
     "tags": [
-      "machine-learning",
-      "artificial-intelligence",
-      "deep-learning",
-      "natural-language-processing",
-      "data-science"
+      "ml",
+      "fixture"
     ],
-    "readTime": "6 min",
-    "file": "blogs/ml/machine-learning-explained.md"
+    "readTime": "1 min",
+    "source": "fixture",
+    "approvalDigest": "0f90afff60554ed3765508c61a0fdfb7d7dbe8359882757c2fba8861ce511c3a"
   }
 ]

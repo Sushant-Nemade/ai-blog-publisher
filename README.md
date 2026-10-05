@@ -1,119 +1,86 @@
-# <a href="https://kalyanm45.github.io/BlogBoard-AI-Blog-Generator/">BlogBoard — Autonomous AI Article Generator</a>
+# AI Blog Publisher
 
-<p align="center"> <img src="https://img.shields.io/github/license/KalyanM45/BlogBoard-AI-Blog-Generator?style=ROUND" alt="License" /> <img src="https://img.shields.io/github/stars/KalyanM45/BlogBoard-AI-Blog-Generator?style=ROUND" alt="Stars" /> <img src="https://img.shields.io/github/forks/KalyanM45/BlogBoard-AI-Blog-Generator?style=ROUND" alt="Forks" /> <img src="https://img.shields.io/github/issues/KalyanM45/BlogBoard-AI-Blog-Generator?style=ROUND"alt="Issues" />
-</p>
+An attributed BlogBoard derivative with private drafts, explicit reviewed publication, and a static article reader.
 
-## About The Project
+**Status: tested reference implementation.** Offline workflows and desktop/mobile browser checks pass. Live Groq, news-search and R2 integrations have not been verified with real credentials. This is not a production certification, multi-user CMS, factual-accuracy guarantee or uptime commitment.
 
-BlogBoard is an end-to-end, fully automated blogging platform. It autonomously schedules, writes, formats, and publishes deep-dive technical articles on Machine Learning and Artificial Intelligence directly to a fast, static frontend website.
+## Source and Category
 
-Powered by **LangGraph** for stateful workflow execution and **Groq** for blazing-fast LLM inference, it ensures that high-quality, zero-fluff, production-grade articles are generated and deployed automatically via **GitHub Actions**.
+- Primary category: Generative and Agentic AI; portfolio placement: Responsible automation.
+- Discovered through [AI Project Gallery](https://github.com/KalyanM45/AI-Project-Gallery).
+- Adapted from [Hema Kalyan Murapaka's BlogBoard](https://github.com/KalyanM45/Multi-Agentic-Blog-Generation), revision `8b743e21ac0e940dc8bd159f5d94a8f5eb17c630`.
+- The original MIT [LICENSE](LICENSE) is preserved. This repository retains upstream history; the workflow and reader originate upstream, not as original work claimed by Sushant Nemade.
+- [Catalog](https://github.com/Sushant-Nemade/ai-project-gallery) | [Release evidence](docs/RELEASE_STATUS.md) | [Operations](docs/OPERATIONS.md)
 
-## Library Requirements
+## Quick Start
 
- - Python 3.12+
- - langgraph>=0.2.20
- - groq>=0.11.0
- - python-dotenv>=1.0.1
- - uv (for dependency management)
+Requires Python 3.13, uv, Node.js 22 or newer, and npm. Run from the repository root; commands work in PowerShell as well as a Unix shell.
 
-## Getting Started
+```text
+git clone https://github.com/Sushant-Nemade/ai-blog-publisher.git
+cd ai-blog-publisher
+uv sync --frozen
+npm ci --ignore-scripts
+npm run build
+uv run --frozen python -m blogboard.run --help
+uv run --frozen python -m blogboard.run --dry-run
+uv run --frozen python -m blogboard.run --ainews --dry-run
+```
 
-This will help you understand how you may give instructions on setting up your project locally.
-To get a local copy up and running follow these simple example steps.
+Help and dry-run need no keys, make no network calls and write no output files. Installing dependencies and security audits do use the network.
 
-## Installation Steps
+## Review and Publish a Fixture
 
-### Installation from GitHub
+```text
+uv run --frozen python -m blogboard.run --fixture
+uv run --frozen python -m blogboard.run --draft drafts/<returned-digest>.json
+uv run --frozen python -m blogboard.run --draft drafts/<returned-digest>.json --approve <inspected-digest>
+uv run --frozen python -m blogboard.run --verify-site
+uv run --frozen python -m http.server 8000 --bind 127.0.0.1 --directory blogboard/web
+```
 
-Follow these steps to install and set up the project directly from the GitHub repository:
+Open http://127.0.0.1:8000. The supplied article is explicitly labeled a synthetic fixture, not live AI output. Inspect the complete draft before approving it. The digest covers content and metadata; changing either invalidates previous approval.
 
-1. **Clone the Repository**
-   - Open your terminal or command prompt.
-   - Navigate to the directory where you want to install the project.
-   - Run the following command to clone the GitHub repository:
-     ```bash
-     git clone https://github.com/KalyanM45/BlogBoard-AI-Blog-Generator.git
-     ```
+## Configured AI Generation
 
-2. **Create a Virtual Environment** (Recommended)
-   - It's a good practice to create a virtual environment to manage project dependencies. Run the following command:
-     ```bash
-     uv venv
-     ```
+Create a private `.env` locally using `.env.example`. Set `llm__api_key` through your local editor or secret manager, never through chat or a commit. Groq account terms, quotas and costs apply; no paid service is activated by this repository.
 
-3. **Activate the Virtual Environment**
-   - Activate the virtual environment based on your operating system:
-       ```bash
-       # On Linux/Mac:
-       source .venv/bin/activate
-       # On Windows:
-       .venv\Scripts\activate
-       ```
+```text
+uv run --frozen python -m blogboard.run --domain ml --topic "Reliable publishing pipelines"
+uv run --frozen python -m blogboard.run --ainews --topic "AI research releases"
+```
 
-4. **Install Dependencies**
-   - Navigate to the project directory:
-     ```bash
-     cd BlogBoard-AI-Blog-Generator
-     ```
-   - Run the following command to install project dependencies:
-     ```bash
-     uv pip install -r backend/requirements.txt
-     ```
+Live tutorial generation needs Groq. News research additionally needs at least one configured Tavily or Guardian account. These commands save a private draft, not a published article. Follow the same review and approval steps above. News citations and generated technical claims require human verification.
 
-5. **Run the Project**
-   - Start the backend pipeline by running the appropriate command:
-     ```bash
-     python backend/run.py
-     ```
+Local history is the default. Optional `STORAGE_BACKEND=r2` uses explicitly configured R2 history; publication remains the reviewed local static-site workflow. Cloud publication transactions, multi-user editing and scheduled AI generation are not implemented.
 
-6. **Access the Project**
-   - Serve the frontend locally using Python's built-in HTTP server:
-     ```bash
-     python -m http.server 8000 --directory frontend
-     ```
-   - Open a web browser and navigate to `http://localhost:8000`.
+## Architecture and Improvements
 
+```text
+CLI -> LangGraph tutorial/news track -> bounded model calls
+    -> strict Pydantic editorial review -> private JSON draft
+    -> human inspection + matching digest -> single-writer local publication
+    -> validated article index -> sanitized static reader -> gated Pages artifact
+```
 
-## API Key Setup
+- Malformed review JSON, missing approval and exhausted revisions fail closed.
+- Immutable content-addressed articles and atomic individual file replacement support idempotent retries. A failed index write can leave an unindexed article; multi-file writes are not falsely described as transactions.
+- Missing, corrupt and inaccessible indexes are distinct outcomes; failures do not silently erase previous content.
+- Provider timeout, retry, token and research-step limits bound execution. Diagnostics do not print provider exceptions or credentials.
+- Local content URLs work under the repository Pages subpath. Metadata is validated, interpolated strings are escaped, Markdown is sanitized, and failures offer retry.
+- Pinned dependencies, Python/browser tests, security screening and serialized Pages delivery provide inspectable release evidence.
 
-To use this project, you need an API key from Groq to power the Large Language Model inference. Follow these steps to obtain and set up your API key:
+## Verification
 
-1. **Get API Key:**
-   - Visit the Groq Console at [console.groq.com](https://console.groq.com/).
-   - Follow the instructions to create an account and obtain your API key.
+```text
+uv run --frozen pytest -q
+uv run --frozen ruff check .
+uv run --frozen pip-audit --progress-spinner off
+npm test
+npm audit
+uv run --frozen python -m scripts.prepare_demo
+npx playwright install chromium
+npm run test:e2e
+```
 
-2. **Set Up API Key:**
-   - Create a file named `.env` in the project root.
-   - Add your API key to the `.env` file:
-     ```dotenv
-     GROQ_API_KEY=your_api_key_here
-     ```
-
-   **Note:** Keep your API key confidential. Do not share it publicly or expose it in your code.<br>
-
-## Contributing
-
-Contributions are what make the open-source community such an amazing place to learn, inspire, and create. Any contributions you make are **greatly appreciated**.
-
-• **Report bugs**: If you encounter any bugs, please let us know. Open up an issue and let us know the problem.
-
-• **Contribute code**: If you are a developer and want to contribute, follow the instructions below to get started!
-
-1. Fork the Project
-2. Create your Feature Branch
-3. Commit your Changes
-4. Push to the Branch
-5. Open a Pull Request
-
-• **Suggestions**: If you don't want to code but have some awesome ideas, open up an issue explaining some updates or improvements you would like to see!
-
-#### Don't forget to give the project a star! Thanks again!
-
-## License
-
-This project is licensed under the [MIT License](https://opensource.org/licenses/MIT) - see the [LICENSE](LICENSE) file for details.<br>
-
-## Acknowledgements
-
-We'd like to extend our gratitude to all individuals and organizations who have played a role in the development and success of this project. Your support, whether through contributions, inspiration, or encouragement, has been invaluable. Thank you for being a part of our journey.
+Browser tests use an isolated synthetic site under `build/demo`, cover desktop/mobile viewports, and do not need model keys. Core graph integration tests mock providers and prove routing/storage behavior, not provider availability. CI never generates or approves real articles. Pages deploys only reviewed committed content after CI succeeds.

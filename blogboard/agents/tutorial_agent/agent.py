@@ -3,7 +3,7 @@ import re
 import math
 from blogboard.graph.state import BlogState
 from blogboard.services.llm import LLMAgentService
-from blogboard.services.storage import R2StorageService
+from blogboard.services.storage import get_storage_service
 from blogboard.config.settings import app_settings
 from blogboard.services.prompt_manager import prompt_manager
 from .prompts import TUTORIAL_TOPIC_PROMPT, TUTORIAL_GENERATION_PROMPT
@@ -15,7 +15,10 @@ def _read_time(text: str) -> str:
 def tutorial_node(state: BlogState) -> BlogState:
     print("  => [TutorialAgent] Running...")
     
-    storage = R2StorageService()
+    if state.get("dry_run"):
+        return {**state, "domain": state.get("domain", "ml"), "topic": "Offline preview",
+                "content": "Offline preview", "read_time": "1 min"}
+    storage = get_storage_service()
     
     # --- Step 1: Topic Selection (if not already strictly defined by State) ---
     topic = state.get("topic")
@@ -28,7 +31,7 @@ def tutorial_node(state: BlogState) -> BlogState:
         valid_domains = {k: v for k, v in domain_dates.items() if k != "ainews"}
         
         sorted_domains = sorted(valid_domains.items(), key=lambda item: item[1])
-        target_domain = sorted_domains[0][0]
+        target_domain = state.get("domain") or sorted_domains[0][0]
         
         tags_config = app_settings.tags.model_dump()
         cat_label = tags_config.get(target_domain, {}).get("label", target_domain)

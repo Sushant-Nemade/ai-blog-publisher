@@ -26,9 +26,14 @@ function initNav() {
 
 /* ── Stats Counter ── */
 async function loadStats() {
-    const total = await getTotalCount();
-    animateCounter('totalBlogs', total);
-    animateCounter('totalCategories', 6);
+    try {
+        const total = await getTotalCount();
+        animateCounter('totalBlogs', total);
+        animateCounter('totalCategories', ALL_CATEGORIES.length);
+    } catch (_) {
+        const total = document.querySelector('#totalBlogs .stat-num');
+        if (total) total.textContent = 'Unavailable';
+    }
 }
 
 function animateCounter(id, target) {
@@ -51,7 +56,13 @@ async function loadRecentPosts() {
 
     container.innerHTML = '<p style="color:var(--text-muted);padding:20px">Loading articles...</p>';
 
-    const recents = await getRecentBlogs(6);
+    let recents;
+    try {
+        recents = await getRecentBlogs(6);
+    } catch (_) {
+        showLoadError(container, () => Promise.all([loadRecentPosts(), loadStats()]));
+        return;
+    }
 
     if (recents.length === 0) {
         container.innerHTML = '<p style="color:var(--text-muted);padding:20px">No articles published yet. Check back soon!</p>';

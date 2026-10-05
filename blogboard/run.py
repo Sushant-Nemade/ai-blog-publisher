@@ -1,122 +1,83 @@
 import argparse
-import sys
-from datetime import datetime, timezone, timedelta
+import json
 from pathlib import Path
-BACKEND_DIR = Path(__file__).parent
-ROOT_DIR = BACKEND_DIR.parent
-if str(ROOT_DIR) not in sys.path:
-    sys.path.insert(0, str(ROOT_DIR))
+import sys
+from datetime import date, datetime, timedelta, timezone
+from uuid import uuid4
 
-# ── Load .env (GROQ_API_KEY etc.) ────────────────────────────────────────────
-try:
-    from dotenv import load_dotenv
-    env_path = BACKEND_DIR.parent / ".env"
-    load_dotenv(dotenv_path=env_path)
-except ImportError:
-    pass  # python-dotenv is optional; export env vars manually if needed
-
-import os
-import sentry_sdk
-sentry_dsn = os.getenv("SENTRY_DSN")
-if sentry_dsn:
-    sentry_sdk.init(
-        dsn=sentry_dsn,
-        traces_sample_rate=1.0,
-        _experiments={
-            "continuous_profiling_auto_start": True,
-        },
-    )
-
-# ── Import compiled graph ─────────────────────────────────────────────────────
-from blogboard.graph.graph import graph
-
-
-# ─────────────────────────────────────────────────────────────────────────────
 
 def today_ist() -> str:
-    ist = timezone(timedelta(hours=5, minutes=30))
-    return datetime.now(ist).strftime("%Y-%m-%d")
+    return datetime.now(timezone(timedelta(hours=5, minutes=30))).date().isoformat()
 
 
-def main():
-    parser = argparse.ArgumentParser(
-        description="BlogBoard LangGraph Article Generator",
-        formatter_class=argparse.RawDescriptionHelpFormatter,
-        epilog="""
-Examples
---------
-  # Generate today's article (IST):
-  python backend/run.py
+def main(argv=None) -> int:
+    parser = argparse.ArgumentParser(description="AI Blog Publisher: generate a draft, never auto-publish")
+    parser.add_argument("--date", default=today_ist(), help="Publication date in YYYY-MM-DD format")
+    parser.add_argument("--dry-run", action="store_true", help="Offline preview: no network or output files")
+    parser.add_argument("--ainews", action="store_true", help="Use the opt-in news research track")
+    parser.add_argument("--fixture", action="store_true", help="Save the labeled synthetic example draft")
+    parser.add_argument("--domain", choices=("ml", "dl", "nlp", "cv", "genai", "statistics"), default="ml")
+    parser.add_argument("--topic", default=None, help="Tutorial topic, up to 300 characters")
+    parser.add_argument("--draft", type=Path, help="Inspect a saved draft; does not publish by default")
+    parser.add_argument("--approve", help="Publish --draft only if this SHA-256 matches its inspected digest")
+    parser.add_argument("--verify-site", action="store_true", help="Validate local article indexes and files")
+    parser.add_argument("--site-root", type=Path, help="Override the local static site directory")
+    parser.add_argument("--draft-root", type=Path, help="Override the private draft directory")
+    args = parser.parse_args(argv)
+    try:
+        date.fromisoformat(args.date)
+    except ValueError:
+        parser.error("--date must be a valid ISO date")
+    if args.approve and not args.draft:
+        parser.error("--approve requires --draft")
+    if sum(bool(flag) for flag in (args.draft, args.fixture, args.verify_site)) > 1:
+        parser.error("choose only one of --draft, --fixture, --verify-site")
+    if args.topic and not 1 <= len(args.topic.strip()) <= 300:
+        parser.error("--topic must contain 1 to 300 characters")
+    if args.dry_run:
+        print(json.dumps({"date": args.date, "domain": "ainews" if args.ainews else "ml",
+                          "status": "preview", "network_calls": 0, "published": False}))
+        return 0
 
-  # Generate for a specific date:
-  python backend/run.py --date 2026-03-07
+    try:
+        from blogboard.config.settings import app_settings
+        from blogboard.services.storage import Draft, LocalStorageService, save_draft
 
-  # Dry run — no LLM calls, no file writes:
-  python backend/run.py --dry-run
-        """,
-    )
-    parser.add_argument(
-        "--date", type=str, default=None,
-        help="Target date in YYYY-MM-DD format (default: today in IST)",
-    )
-    parser.add_argument(
-        "--dry-run", action="store_true",
-        help="Preview mode: skip Groq calls and file writes",
-    )
-    parser.add_argument(
-        "--ainews", action="store_true",
-        help="Run the AI News gathering and generation graph",
-    )
-    args = parser.parse_args()
+        if args.site_root:
+            app_settings.SITE_ROOT = args.site_root.resolve()
+        if args.draft_root:
+            app_settings.DRAFT_ROOT = args.draft_root.resolve()
+        if args.verify_site:
+            print(json.dumps({"verified_articles": LocalStorageService().verify()}))
+        elif args.draft:
+            if args.draft.stat().st_size > 100000:
+                raise ValueError("draft exceeds size limit")
+            draft = Draft.model_validate_json(args.draft.read_text(encoding="utf-8"))
+            if args.approve:
+                path = LocalStorageService().publish(draft, args.approve)
+                print(json.dumps({"published": True, "file": path, "source": draft.source}))
+            else:
+                print(json.dumps({"digest": draft.digest(), "published": False, "draft": draft.model_dump()}, indent=2))
+        elif args.fixture:
+            example = Path(__file__).resolve().parents[1] / "examples" / "reviewed-draft.json"
+            draft = Draft.model_validate_json(example.read_text(encoding="utf-8"))
+            print(json.dumps({"draft": save_draft(draft), "digest": draft.digest(),
+                              "source": "fixture", "published": False}))
+        else:
+            from blogboard.graph.graph import graph
 
-    date_str = args.date or today_ist()
-    dry_run  = args.dry_run
-    run_ainews = args.ainews
-
-    # ── Banner ────────────────────────────────────────────────────────────────
-    print(f"\n{'='*55}")
-    print(f"  BlogBoard — LangGraph Article Generator")
-    print(f"  Date    : {date_str}")
-    print(f"  Dry run : {dry_run}")
-    print(f"{'='*55}")
-
-    # ── Build initial state and invoke the graph ──────────────────────────────
-    initial_state = {
-        "date":    date_str,
-        "dry_run": dry_run,
-    }
-    
-    if run_ainews:
-        initial_state["domain"] = "ainews"
-
-    config = {"configurable": {"thread_id": "blogboard-1"}}
-    # The single compiled graph is smart enough to route to NewsAgent if domain=='ainews'
-    final_state = graph.invoke(initial_state, config=config)
-
-    # ── Summary ───────────────────────────────────────────────────────────────
-    print(f"\n{'='*55}")
-    if dry_run:
-        print(f"  [DRY RUN] Pipeline completed — no files were written.")
-        domain = final_state.get("domain", "?")
-        topic  = final_state.get("topic", "?")
-        slug   = final_state.get("slug", "?")
-        print(f"  Chosen Domain : {domain}")
-        print(f"  Chosen Topic  : {topic}")
-        print(f"  Would have generated:")
-        print(f"    -> frontend/blogs/{domain}/{slug}.md")
-        print(f"    -> frontend/blogs/{domain}/articles.json")
-    else:
-        domain    = final_state.get("domain", "?")
-        title     = final_state.get("title", "?")
-        md_path   = final_state.get("md_path", "?")
-        read_time = final_state.get("read_time", "?")
-        print(f"  🎉 Done!  Article generated successfully.")
-        print(f"  Title     : {title}")
-        print(f"  Domain    : {domain}")
-        print(f"  Read time : {read_time}")
-        print(f"  File      : {md_path}")
-    print(f"{'='*55}\n")
+            final_state = graph.invoke(
+                {"date": args.date, "dry_run": False, "domain": "ainews" if args.ainews else args.domain,
+                 **({"topic": args.topic} if args.topic else {})},
+                config={"configurable": {"thread_id": str(uuid4())}, "recursion_limit": 20},
+            )
+            print(json.dumps({"draft": final_state["draft_path"], "published": False}))
+        return 0
+    except Exception as error:
+        print(f"Operation failed ({type(error).__name__}). No publication reported; inspect configuration and retry.",
+              file=sys.stderr)
+        return 1
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())

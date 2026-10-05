@@ -1,0 +1,10 @@
+{
+  "category": "ml",
+  "topic": "Reliable publishing pipelines",
+  "title": "Review Before Release",
+  "description": "A synthetic reference article about explicit review and reliable publication.",
+  "slug": "review-before-release",
+  "date": "2026-10-06",
+  "source": "fixture",
+  "content": "## A deliberate release\n\nThis is an authored synthetic fixture, not a live model result. A dependable publishing pipeline treats generation and publication as separate decisions.\n\n## Review the exact artifact\n\nReviewers should inspect the complete draft before promoting it. A content digest binds approval to the inspected artifact: editing the draft invalidates an earlier approval.\n\n```python\nimport hashlib\ndigest = hashlib.sha256(b'reviewed content').hexdigest()\n```\n\n## Preserve the previous release\n\nA failed upload must not replace an existing index with an empty collection. Promote a validated site snapshot only after every referenced article is available.\n\n| Condition | Outcome |\n| --- | --- |\n| Invalid review | Keep the draft private |\n| Stale approval | Reject publication |\n| Missing article | Preserve the prior index |\n| Validated release | Promote the complete snapshot |\n\n## Operational boundaries\n\nLocal write tests demonstrate failure handling, not cloud availability or factual accuracy. Model-generated claims and external sources still require human review.\n"
+}

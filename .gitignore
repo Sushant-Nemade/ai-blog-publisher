@@ -172,3 +172,9 @@ __marimo__/
 
 # BlogBoard Frontend Config
 frontend/js/config.js
+node_modules/
+drafts/
+blogboard/web/js/vendor/
+playwright-report/
+test-results/
+.publish.lock

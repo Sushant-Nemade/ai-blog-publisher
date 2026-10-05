@@ -44,7 +44,8 @@ def news_node(state: BlogState) -> BlogState:
         )
         
         research_agent = llm_service.get_news_agent(system_prompt=system_prompt)
-        response = research_agent.invoke({"messages": [("user", f"Find the latest news for {topic}")]})
+        response = research_agent.invoke({"messages": [("user", f"Find the latest news for {topic}")]},
+                         config={"recursion_limit": 12})
         news_summary = response["messages"][-1].content
         print(f"  [AGENT] Formulated research context ({len(news_summary)} chars).")
 

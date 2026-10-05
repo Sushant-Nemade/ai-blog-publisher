@@ -27,6 +27,8 @@ class LLMAgentService:
         self.model_name = model_name or app_settings.llm.MODEL_NAME
         self.temperature = temperature if temperature is not None else app_settings.llm.TEMPERATURE
         self.api_key = app_settings.llm.API_KEY
+        if not self.api_key:
+            raise ValueError("Set llm__api_key locally before live generation")
         
         # Statically instantiate the main LLM client for reuse across agents created by this service
         self.llm = self._initialize_llm()
@@ -41,7 +43,10 @@ class LLMAgentService:
         return ChatGroq(
             model=self.model_name,
             temperature=self.temperature,
-            api_key=self.api_key
+            api_key=self.api_key,
+            timeout=app_settings.llm.TIMEOUT,
+            max_tokens=app_settings.llm.MAX_TOKENS,
+            max_retries=app_settings.llm.MAX_RETRIES,
         )
         
     def get_news_agent(self, system_prompt: Optional[str] = None):
@@ -55,16 +60,19 @@ class LLMAgentService:
             CompiledGraph: A runnable LangGraph ReAct agent pre-equipped with Tavily and Guardian search tools.
         """
         # Step 1: Initialize the tools designed for the News Agent
-        news_tools: List[BaseTool] = [
-            TavilySearchTool(),
-            GuardianSearchTool()
-        ]
+        news_tools: List[BaseTool] = []
+        if app_settings.content.TAVILY_API_KEY:
+            news_tools.append(TavilySearchTool())
+        if app_settings.content.GUARDIAN_API_KEY:
+            news_tools.append(GuardianSearchTool())
+        if not news_tools:
+            raise ValueError("News research requires at least one configured search provider")
         
         # Step 2: Bind the tools and LLM using LangGraph's prebuilt ReAct orchestrator
         agent = create_react_agent(
             model=self.llm,
             tools=news_tools,
-            state_modifier=system_prompt
+            prompt=system_prompt
         )
         return agent
         
@@ -82,6 +90,6 @@ class LLMAgentService:
         agent = create_react_agent(
             model=self.llm,
             tools=tools,
-            state_modifier=system_prompt
+            prompt=system_prompt
         )
         return agent

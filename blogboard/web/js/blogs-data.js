@@ -82,9 +82,44 @@ const ALL_CATEGORIES = ['ml', 'dl', 'nlp', 'cv', 'genai', 'ainews', 'statistics'
 /* ── Cache ─────────────────────────────────────────────── */
 const _cache = {};
 
-const R2_PUBLIC_URL = (typeof window !== 'undefined' && window.CONFIG && window.CONFIG.R2_PUBLIC_URL)
-  ? window.CONFIG.R2_PUBLIC_URL
-  : 'https://missing-config-js.r2.dev';
+const CONTENT_BASE = new URL(window.CONFIG?.CONTENT_BASE_URL || './', window.location.href);
+
+function contentURL(key) {
+  if (!/^blogs\/(ml|dl|nlp|cv|genai|ainews|statistics)\/(?:[a-z0-9-]+\.md|articles\.json)$/.test(key)) {
+    throw new Error('Invalid article path');
+  }
+  const url = new URL(key, CONTENT_BASE);
+  if (url.origin !== window.location.origin) throw new Error('Content must be hosted with this site');
+  return url.href;
+}
+
+function validateArticle(article, category) {
+  if (!article || article.category !== category || article.id !== article.file) throw new Error('Invalid article');
+  contentURL(article.file);
+  if (!article.file.startsWith(`blogs/${category}/`) || !article.file.endsWith('.md')) throw new Error('Invalid category path');
+  for (const [field, limit] of [['title', 70], ['description', 160]]) {
+    if (typeof article[field] !== 'string' || !article[field].trim() || article[field].length > limit) throw new Error('Invalid metadata');
+  }
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(article.date) || !Number.isFinite(Date.parse(article.date)) ||
+      new Date(article.date).toISOString().slice(0, 10) !== article.date) throw new Error('Invalid date');
+  if (!/^\d{1,4} min$/.test(article.readTime)) throw new Error('Invalid reading time');
+  if (!Array.isArray(article.tags) || article.tags.length > 10 ||
+      article.tags.some(tag => typeof tag !== 'string' || tag.length > 80)) throw new Error('Invalid tags');
+  return article;
+}
+
+function showLoadError(container, retry, message = 'Articles could not be loaded.') {
+  container.replaceChildren();
+  const notice = document.createElement('p');
+  notice.setAttribute('role', 'alert');
+  notice.textContent = message;
+  const button = document.createElement('button');
+  button.type = 'button';
+  button.className = 'btn-ghost-sm';
+  button.textContent = 'Retry';
+  button.addEventListener('click', retry);
+  container.append(notice, button);
+}
 
 /* ── Core Fetch ────────────────────────────────────────── */
 /**
@@ -92,20 +127,24 @@ const R2_PUBLIC_URL = (typeof window !== 'undefined' && window.CONFIG && window.
  * Returns [] if the request fails (i.e. empty category).
  */
 async function loadCategoryArticles(cat) {
+  if (!ALL_CATEGORIES.includes(cat)) throw new Error('Unknown category');
   if (_cache[cat] !== undefined) return _cache[cat];
-
+  _cache[cat] = (async () => {
+    const res = await fetch(contentURL(`blogs/${cat}/articles.json`), {
+      credentials: 'omit', cache: 'no-cache', signal: AbortSignal.timeout(10000),
+    });
+    if (!res.ok) throw new Error(`Article index unavailable (${res.status})`);
+    const raw = await res.text();
+    if (raw.length > 500000) throw new Error('Article index is too large');
+    const data = JSON.parse(raw);
+    if (!Array.isArray(data) || data.length > 2000) throw new Error('Invalid article index');
+    return data.map(article => validateArticle(article, cat));
+  })();
   try {
-    const res = await fetch(`${R2_PUBLIC_URL}/blogs/${cat}/articles.json`);
-    if (!res.ok) {
-      _cache[cat] = [];
-      return [];
-    }
-    const data = await res.json();
-    _cache[cat] = Array.isArray(data) ? data : [];
-    return _cache[cat];
-  } catch (_) {
-    _cache[cat] = [];
-    return [];
+    return await _cache[cat];
+  } catch (error) {
+    delete _cache[cat];
+    throw error;
   }
 }
 
@@ -129,6 +168,7 @@ async function getBlogsByCategory(cat, sort = 'newest') {
  * The id is generally the relative path "blogs/domain/slug.md" stored in the json.
  */
 async function getBlogById(id) {
+  contentURL(id);
   // Try to parse category from path "blogs/{cat}/..."
   const parts = id.split('/');
   if (parts.length >= 3) {

@@ -104,19 +104,7 @@ function applyCategoryTheme(cat) {
     if (title) title.textContent = meta.label;
     if (desc) desc.textContent = meta.description;
 
-    if (scheduleBadge) {
-        const sched = DOMAIN_SCHEDULE[cat];
-        if (sched && sched.day) {
-            scheduleBadge.innerHTML = `
-                <span class="sched-icon">🗓️</span>
-                <span>Fresh articles drop every <strong>${sched.day}</strong> — live by <strong>${sched.time}</strong></span>
-            `;
-            scheduleBadge.style.display = 'flex';
-        } else {
-            scheduleBadge.innerHTML = `<span class="sched-icon">📡</span><span>Published as breaking news arrives</span>`;
-            scheduleBadge.style.display = 'flex';
-        }
-    }
+    if (scheduleBadge) scheduleBadge.style.display = 'none';
 }
 
 /* ── Render Blog List ── */
@@ -128,7 +116,15 @@ async function renderBlogList() {
 
     listEl.innerHTML = '<p style="color:var(--text-muted);padding:20px">Loading articles...</p>';
 
-    let blogs = await getBlogsByCategory(catKey, currentSort);
+    let blogs;
+    try {
+        blogs = await getBlogsByCategory(catKey, currentSort);
+    } catch (_) {
+        emptyEl?.classList.add('hidden');
+        showLoadError(listEl, () => renderBlogList());
+        if (countEl) countEl.textContent = 'Unavailable';
+        return;
+    }
     if (countEl) countEl.textContent = blogs.length;
 
     // Search filter
@@ -156,7 +152,7 @@ async function renderBlogList() {
         <div class="blog-item-meta">
           <span class="blog-item-date">${formatDate(blog.date)}</span>
           ${(blog.tags || []).slice(0, 2).map(tag =>
-        `<span class="blog-item-tag" style="background:${meta.bgColor};color:${meta.color}">#${tag}</span>`
+        `<span class="blog-item-tag" style="background:${meta.bgColor};color:${meta.color}">#${escapeHtml(tag)}</span>`
     ).join('')}
         </div>
         <h2 class="blog-item-title">${escapeHtml(blog.title)}</h2>

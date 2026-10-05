@@ -28,4 +28,5 @@ class BlogState(TypedDict, total=False):
     
     # Final Output
     md_path: str
+    draft_path: str
     skipped: bool
