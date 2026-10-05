@@ -12,6 +12,12 @@ async function openArticle(page) {
   await expect(page.locator('#postContent h2').first()).toBeVisible();
 }
 
+test('reader contains no inherited analytics tracker', async ({ page }) => {
+  await page.goto('./index.html');
+  await expect(page.locator('script[src*="googletagmanager"],script[src*="google-analytics"]')).toHaveCount(0);
+  expect(await page.evaluate(() => typeof window.gtag)).toBe('undefined');
+});
+
 test('home, article, table, TOC and responsive framing', async ({ page }, testInfo) => {
   const errors = [];
   page.on('pageerror', error => errors.push(error.message));

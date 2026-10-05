@@ -8,8 +8,9 @@ Tested reference implementation, reviewed 2026-10-06. No production certificatio
 - Actual LangGraph tutorial/news routing with mocked providers ends in a private draft, never automatic publication.
 - CLI help and both dry-run modes with networking blocked and credentials removed.
 - Strict editorial review, revision exhaustion, stale approval, corrupt index preservation, failed writes, lock contention and idempotent publication.
-- Three frontend registry tests and ten Playwright checks at 1440x900 and 390x844 under a repository subpath.
+- Three frontend registry tests and twelve Playwright checks at 1440x900 and 390x844 under a repository subpath.
 - Markdown headings, TOC, tables, code display, search, empty/error/retry states, malicious tags and script/URL sanitization.
+- The inherited upstream Google Analytics tag was removed; the reader does not configure visitor analytics.
 - npm audit and pip-audit report no known vulnerabilities in the tested dependency sets. This is not a guarantee that none exist.
 
 ## Not Verified
