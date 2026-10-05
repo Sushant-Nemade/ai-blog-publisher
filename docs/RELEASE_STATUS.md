@@ -4,7 +4,7 @@ Tested reference implementation, reviewed 2026-10-06. No production certificatio
 
 ## Verified Locally
 
-- Python 3.13 frozen dependency installation, 17 Python tests plus parametrized subtests, and focused Ruff lint.
+- Python 3.13 frozen dependency installation, 19 Python tests plus parametrized subtests, and focused Ruff lint.
 - Actual LangGraph tutorial/news routing with mocked providers ends in a private draft, never automatic publication.
 - CLI help and both dry-run modes with networking blocked and credentials removed.
 - Strict editorial review, revision exhaustion, stale approval, corrupt index preservation, failed writes, lock contention and idempotent publication.

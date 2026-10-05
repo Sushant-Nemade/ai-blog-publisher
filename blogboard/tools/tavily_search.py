@@ -11,8 +11,8 @@ from langchain_core.tools import BaseTool
 
 class TavilySearchInput(BaseModel):
     """Input schema for the TavilySearchTool."""
-    query: str = Field(description="The search query to look up on the web.")
-    days: int = Field(default=7, description="Number of days to look back for recent news.")
+    query: str = Field(min_length=1, max_length=300, description="The search query to look up on the web.")
+    days: int = Field(default=7, ge=1, le=14, description="Number of days to look back for recent news.")
 
 
 class TavilySearchTool(BaseTool):
@@ -44,7 +44,9 @@ class TavilySearchTool(BaseTool):
         """
         api_key = app_settings.content.TAVILY_API_KEY
         if not api_key:
-             return "Error: TAVILY_API_KEY is not configured in the application settings."
+             raise ValueError("Tavily is not configured")
+        if not query.strip() or len(query) > 300 or not 1 <= days <= 14:
+            raise ValueError("Invalid search bounds")
 
         try:
             response = requests.post(
@@ -64,19 +66,17 @@ class TavilySearchTool(BaseTool):
             data = response.json()
             
             results = []
-            for result in data.get("results", []):
+            for result in data.get("results", [])[:3]:
                 results.append(
                     f"Title: {result.get('title')}\n"
                     f"URL: {result.get('url')}\n"
-                    f"Content: {result.get('content')}"
+                    f"Content: {str(result.get('content', ''))[:2000]}"
                 )
                 
             if not results:
-                return f"No results found on Tavily for query: '{query}'."
+                raise RuntimeError("No research sources returned")
                 
             return "\n\n".join(results)
             
-        except requests.exceptions.RequestException as e:
-            return f"Tavily search API request failed: {str(e)}"
-        except Exception as e:
-            return f"An unexpected error occurred during Tavily search: {str(e)}"
+        except Exception:
+            raise RuntimeError("Tavily research unavailable; no article generated") from None

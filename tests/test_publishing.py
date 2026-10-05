@@ -11,6 +11,7 @@ from blogboard.config.settings import app_settings
 from blogboard.graph.graph import build_graph
 from blogboard.services.llm import LLMAgentService
 from blogboard.services.storage import Draft, LocalStorageService
+from blogboard.tools import GuardianSearchTool, TavilySearchTool
 
 
 def example():
@@ -132,6 +133,20 @@ class PublishingTests(unittest.TestCase):
         with patch.object(app_settings.llm, "API_KEY", ""):
             with self.assertRaises(ValueError):
                 LLMAgentService()
+
+    def test_search_failure_is_redacted_and_stops(self):
+        for tool, setting, request in ((TavilySearchTool(), "TAVILY_API_KEY", "post"),
+                                       (GuardianSearchTool(), "GUARDIAN_API_KEY", "get")):
+            with self.subTest(setting=setting), patch.object(app_settings.content, setting, "synthetic-placeholder"), \
+                    patch(f"requests.{request}", side_effect=RuntimeError("private-provider-detail")):
+                with self.assertRaises(RuntimeError) as caught:
+                    tool.invoke({"query": "research", "days": 7})
+                self.assertNotIn("private-provider-detail", str(caught.exception))
+
+    def test_search_bounds_are_enforced(self):
+        for tool in (TavilySearchTool(), GuardianSearchTool()):
+            with self.subTest(tool=tool.name), self.assertRaises(ValidationError):
+                tool.invoke({"query": "research", "days": 100})
 
 
 if __name__ == "__main__":

@@ -12,8 +12,8 @@ from langchain_core.tools import BaseTool
 
 class GuardianSearchInput(BaseModel):
     """Input schema for the GuardianSearchTool."""
-    query: str = Field(description="The search query to look up on The Guardian.")
-    days: int = Field(default=7, description="Number of days to look back in the archives.")
+    query: str = Field(min_length=1, max_length=300, description="The search query to look up on The Guardian.")
+    days: int = Field(default=7, ge=1, le=14, description="Number of days to look back in the archives.")
 
 
 class GuardianSearchTool(BaseTool):
@@ -45,7 +45,9 @@ class GuardianSearchTool(BaseTool):
         """
         api_key = app_settings.content.GUARDIAN_API_KEY
         if not api_key:
-             return "Error: GUARDIAN_API_KEY is not configured in the application settings."
+             raise ValueError("Guardian is not configured")
+        if not query.strip() or len(query) > 300 or not 1 <= days <= 14:
+            raise ValueError("Invalid search bounds")
              
         end_date = datetime.now()
         start_date = end_date - timedelta(days=days)
@@ -73,7 +75,7 @@ class GuardianSearchTool(BaseTool):
             results = data.get("response", {}).get("results", [])
             formatted_results = []
             
-            for result in results:
+            for result in results[:3]:
                 fields = result.get("fields", {})
                 content_preview = fields.get('bodyText', '')[:1000] # Cap length
                 
@@ -85,11 +87,9 @@ class GuardianSearchTool(BaseTool):
                 )
                 
             if not formatted_results:
-                 return f"No results found on The Guardian for query: '{query}'."
+                 raise RuntimeError("No research sources returned")
                  
             return "\n\n".join(formatted_results)
             
-        except requests.exceptions.RequestException as e:
-            return f"Guardian search API request failed: {str(e)}"
-        except Exception as e:
-            return f"An unexpected error occurred during Guardian search: {str(e)}"
+        except Exception:
+            raise RuntimeError("Guardian research unavailable; no article generated") from None
