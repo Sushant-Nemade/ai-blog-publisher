@@ -12,6 +12,10 @@ def main():
     required = ("README.md", "LICENSE", "docs/RELEASE_STATUS.md", "docs/OPERATIONS.md")
     if any(name not in names for name in required):
         raise ValueError("Release documentation must be included in Git")
+    vendor = root / "blogboard" / "web" / "js" / "vendor"
+    if any(not (vendor / name).is_file() for name in ("marked.umd.js", "purify.min.js", "marked.LICENSE",
+                                                    "dompurify.LICENSE", "dompurify.LICENSE-MPL")):
+        raise ValueError("Build renderer assets and retain their license notices before release")
     rules = [re.compile(r"gh[pousr]_[A-Za-z0-9]{36,}"),
              re.compile(r"github_pat_[A-Za-z0-9_]{50,}"),
              re.compile(r"gsk_[A-Za-z0-9]{30,}"),
