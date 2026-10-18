@@ -4,6 +4,15 @@ An attributed BlogBoard derivative with private drafts, explicit reviewed public
 
 **Status: tested reference implementation.** Offline workflows and desktop/mobile browser checks pass. Live Groq, news-search and R2 integrations have not been verified with real credentials. This is not a production certification, multi-user CMS, factual-accuracy guarantee or uptime commitment.
 
+## Public Demo
+
+[Open the public article reader](https://sushant-ai-demos.pages.dev/ai-blog-publisher/)
+on Cloudflare Pages. It remains accessible when the maintainer's computer is off.
+The published article is a synthetic reference, not verified live AI output;
+private generation, provider credentials and drafts are not exposed.
+[GitHub Pages fallback](https://sushant-nemade.github.io/ai-blog-publisher/) |
+[All project demos](https://sushant-ai-demos.pages.dev/).
+
 ## Source and Category
 
 - Primary category: Generative and Agentic AI; portfolio placement: Responsible automation.
