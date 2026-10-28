@@ -1,0 +1,102 @@
+{
+  "schema_version": 1,
+  "repository": "Sushant-Nemade/ai-blog-publisher",
+  "source_sha": "aabff1b1175c2e5a25546660bfcab13193ba1460",
+  "berlin_date": "2026-10-28",
+  "run_id": "40731114143",
+  "status": "blocked-execution",
+  "stages": [
+    {
+      "name": "baseline-unit-and-integration",
+      "command": [
+        "python",
+        "-m",
+        "pytest",
+        "tests"
+      ],
+      "exit_code": 0,
+      "junit": {
+        "cases": 19,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "passed": 19
+      },
+      "evidence_sha256": "3325baec4fdf0c7b7df30508feb3f76d11b12d9062d166e9b69d024a9223ab5b"
+    },
+    {
+      "name": "baseline-integration",
+      "command": [
+        "python",
+        "-m",
+        "pytest",
+        "tests/test_publishing.py"
+      ],
+      "exit_code": 0,
+      "junit": {
+        "cases": 15,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "passed": 15
+      },
+      "evidence_sha256": "7b94a58628061ad8c10d759d2836c442fe09590d57ed27a8f05bac9285320242"
+    }
+  ],
+  "model": {
+    "name": "Qwen2.5-Coder-1.5B-Instruct-GGUF",
+    "revision": "f86cb2c1fa58255f8052cc32aeede1b7482d4361",
+    "sha256": "cc324af070c2ecbfd324a30884d2f951a7ff756aba85cb811a6ec436933bb046",
+    "license": "Apache-2.0",
+    "paid_api_requests": 0
+  },
+  "policy": {
+    "human_merge_required": false,
+    "automatic_production_merge": true,
+    "max_repairs": 2,
+    "max_generation_calls": 7,
+    "per_call_token_limit": 1700,
+    "max_pipeline_seconds": 2700,
+    "independent_ci_required": true
+  },
+  "load": {
+    "repository": "Sushant-Nemade/ai-blog-publisher",
+    "scope": "Owned local regression journeys; Docker network isolation is enforced by the controller, not this script",
+    "profile": "approved idempotent publication and integrity",
+    "node": "tests/test_publishing.py::PublishingTests::test_idempotent_publication_and_integrity",
+    "requested_workflows": 1000,
+    "observed": 1000,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "concurrency": 1,
+    "duration_seconds": 4.795424586999999,
+    "cpu_process_seconds": 4.7929381520000005,
+    "journey_p95_ms": 2.866085100004767,
+    "journey_p99_ms": 2.966192129993175,
+    "http_request_count": null,
+    "limitations": "Serial repeated regression journeys, NOT simultaneous users/browsers or a production capacity SLA. Test-defined mocks/fixtures remain in effect. HTTP requests are not independently counted.",
+    "passed": true
+  },
+  "planning": {
+    "decision": {
+      "status": "candidate",
+      "summary": "The function does not handle the case where the `get_articles_json` method returns `None` or an empty list."
+    },
+    "provenance": {
+      "role": "planning",
+      "engine": "llama.cpp CPU, no-network container",
+      "max_output_tokens": 1700,
+      "model_repository": "Qwen/Qwen2.5-Coder-1.5B-Instruct-GGUF",
+      "model_revision": "f86cb2c1fa58255f8052cc32aeede1b7482d4361",
+      "model_sha256": "cc324af070c2ecbfd324a30884d2f951a7ff756aba85cb811a6ec436933bb046",
+      "response_sha256": "3b0075a9f053b4f3f99795bbdd3b0aecc893b71c482b51df331752850d1db571",
+      "response_bytes": 169
+    }
+  },
+  "detail": "ValueError: Model did not return JSON; bounded output prefix='{\\n    \"status\": \"no_change\",\\n    \"summary\": \"The function does not handle the case where the `get_articles_json` method returns `None` or an empty list.\",\\n    \"old\": \"def get_recent_history(self, domain, limit=3):\\\\n        articles = sorted(self.get_articles_json(domain), key=lambda item: item[\\'date\\'], reverse=True)\\\\n        return [{\", \"new\": \"if articles is None or not articles:\\\\n            return []\\\\n        articles = sorted(self.get_articles_json(domain), key=lambda item: item[\\'date\\'], reverse=True)\\\\n        return [{\", \"test\": \"def test_get_recent_history(self):\\\\n        with pytest.rai'",
+  "duration_seconds": 403.80159546,
+  "generated_at_utc": "2026-10-28T17:05:10.030519+00:00",
+  "published_at_utc": "2026-10-28T17:05:35.997546+00:00",
+  "run_url": "https://github.com/Sushant-Nemade/ai-blog-publisher/actions/runs/40731114143"
+}
