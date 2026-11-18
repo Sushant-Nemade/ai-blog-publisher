@@ -2,8 +2,8 @@
   "schema_version": 1,
   "repository": "Sushant-Nemade/ai-blog-publisher",
   "source_sha": "aabff1b1175c2e5a25546660bfcab13193ba1460",
-  "berlin_date": "2026-11-11",
-  "run_id": "43076903624",
+  "berlin_date": "2026-11-18",
+  "run_id": "44378285580",
   "status": "blocked-execution",
   "stages": [
     {
@@ -22,7 +22,7 @@
         "skipped": 0,
         "passed": 19
       },
-      "evidence_sha256": "e5854483a624bf7bf1ec39c81acb1ad8014f77fcd426fecdbe65ceec9374d851"
+      "evidence_sha256": "bf250e1bedce790509fb3c133aedf6c73869cd270c90826a64c90fb68d6cb2d1"
     },
     {
       "name": "baseline-integration",
@@ -40,7 +40,7 @@
         "skipped": 0,
         "passed": 15
       },
-      "evidence_sha256": "8888e180ee28efd81f7a66f2571a9495e0debc06c98dc731ecd4da834ed43686"
+      "evidence_sha256": "71207d013d56deac1eac98efaea3d6d138dd8fac4453425c17be23a8ca480dac"
     }
   ],
   "model": {
@@ -70,10 +70,10 @@
     "errors": 0,
     "skipped": 0,
     "concurrency": 1,
-    "duration_seconds": 3.777195445000004,
-    "cpu_process_seconds": 3.773093859,
-    "journey_p95_ms": 1.886521650003914,
-    "journey_p99_ms": 1.9910039400004107,
+    "duration_seconds": 2.5698434530000043,
+    "cpu_process_seconds": 2.5655321620000002,
+    "journey_p95_ms": 1.4076880500063282,
+    "journey_p99_ms": 1.4521074899928976,
     "http_request_count": null,
     "limitations": "Serial repeated regression journeys, NOT simultaneous users/browsers or a production capacity SLA. Test-defined mocks/fixtures remain in effect. HTTP requests are not independently counted.",
     "passed": true
@@ -95,8 +95,8 @@
     }
   },
   "detail": "ValueError: Model did not return JSON; bounded output prefix='{\\n    \"status\": \"no_change\",\\n    \"summary\": \"The function does not handle the case where the `get_articles_json` method returns `None` or an empty list.\",\\n    \"old\": \"def get_recent_history(self, domain, limit=3):\\\\n        articles = sorted(self.get_articles_json(domain), key=lambda item: item[\\'date\\'], reverse=True)\\\\n        return [{\", \"new\": \"if articles is None or not articles:\\\\n            return []\\\\n        articles = sorted(self.get_articles_json(domain), key=lambda item: item[\\'date\\'], reverse=True)\\\\n        return [{\", \"test\": \"def test_get_recent_history(self):\\\\n        with pytest.rai'",
-  "duration_seconds": 469.283759709,
-  "generated_at_utc": "2026-11-11T18:29:09.296527+00:00",
-  "published_at_utc": "2026-11-11T18:29:24.032431+00:00",
-  "run_url": "https://github.com/Sushant-Nemade/ai-blog-publisher/actions/runs/43076903624"
+  "duration_seconds": 287.558083305,
+  "generated_at_utc": "2026-11-18T19:19:06.442025+00:00",
+  "published_at_utc": "2026-11-18T19:19:31.374068+00:00",
+  "run_url": "https://github.com/Sushant-Nemade/ai-blog-publisher/actions/runs/44378285580"
 }
